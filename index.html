@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Teleprompter Voice Glide Pro</title>
+    <title>Teleprompter Pro</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,7 +52,7 @@
             width: 100%;
             height: 100%;
             z-index: 2;
-            background: rgba(0, 0, 0, 0.25);
+            background: rgba(0, 0, 0, 0.3);
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -60,7 +60,7 @@
 
         #prompter-scroll {
             position: absolute;
-            top: 40%;
+            top: 35%;
             width: 88%;
             text-align: center;
             font-weight: 700;
@@ -68,16 +68,16 @@
             text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.95);
             line-height: 1.5;
             word-wrap: break-word;
-            transition: top 0.15s ease-out;
+            will-change: top;
         }
 
         #reading-guide {
             position: absolute;
-            top: 30%;
+            top: 28%;
             left: 5%;
             width: 90%;
             height: 2px;
-            background-color: rgba(255, 50, 50, 0.6);
+            background-color: rgba(255, 50, 50, 0.8);
             z-index: 3;
             pointer-events: none;
         }
@@ -90,7 +90,7 @@
             z-index: 10;
             width: 92%;
             max-width: 420px;
-            background: rgba(18, 18, 18, 0.88);
+            background: rgba(18, 18, 18, 0.9);
             padding: 16px;
             border-radius: 20px;
             backdrop-filter: blur(12px);
@@ -262,16 +262,16 @@
         <textarea id="text-input" placeholder="Lipește textul tău aici..."></textarea>
         
         <div class="toggle-container">
-            <span>🎤 Voice Glide (Urmărire Voce)</span>
+            <span>🎤 Voice Glide (Detectare Audio)</span>
             <label class="switch">
-                <input type="checkbox" id="voice-glide-toggle" checked>
+                <input type="checkbox" id="voice-glide-toggle">
                 <span class="slider"></span>
             </label>
         </div>
 
         <div class="controls-row">
-            <label id="speed-label">Viteză / Ritm:</label>
-            <input type="range" id="speed-control" min="1" max="10" value="3">
+            <label id="speed-label">Viteză Derulare:</label>
+            <input type="range" id="speed-control" min="1" max="20" value="6">
         </div>
 
         <div class="controls-row">
@@ -325,20 +325,13 @@
         let stream, mediaRecorder, recordedChunks = [], isRecording = false, scrollInterval;
         let currentFacingMode = 'user';
         let selectedMimeType = '';
-
-        let recognition;
+        let recognition = null;
         let wordsArray = [];
-        let wordElements = [];
-        let currentWordIndex = 0;
+        let currentPosition = 0;
 
-        // Încărcare text salvat anterior din memoria telefonului (LocalStorage)
         if (localStorage.getItem('saved_teleprompter_text')) {
             textInput.value = localStorage.getItem('saved_teleprompter_text');
         }
-
-        voiceGlideToggle.addEventListener('change', () => {
-            speedLabel.innerText = voiceGlideToggle.checked ? "Viteză / Ritm:" : "Viteză Fixă:";
-        });
 
         async function initCamera() {
             if (stream) stream.getTracks().forEach(track => track.stop());
@@ -368,20 +361,8 @@
 
         function prepareText() {
             const rawText = textInput.value.trim() || "Scrie sau lipește textul mai jos și apasă Start Înregistrare.";
-            // Salvare automată
             localStorage.setItem('saved_teleprompter_text', textInput.value);
-
-            wordsArray = rawText.split(/\s+/);
-            prompterScroll.innerHTML = '';
-            wordElements = [];
-
-            wordsArray.forEach((word, index) => {
-                const span = document.createElement('span');
-                span.innerText = word + ' ';
-                span.id = `word-${index}`;
-                prompterScroll.appendChild(span);
-                wordElements.push(span);
-            });
+            prompterScroll.innerText = rawText;
         }
 
         textInput.addEventListener('input', prepareText);
@@ -392,70 +373,22 @@
         });
         prompterScroll.style.fontSize = fontControl.value + 'px';
 
-        function initSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Browserul nu suportă recunoașterea vocală. Se va folosi viteza fixă.");
-                voiceGlideToggle.checked = false;
-                return null;
-            }
-
-            const rec = new SpeechRecognition();
-            rec.continuous = true;
-            rec.interimResults = true;
-            rec.lang = 'ro-RO';
-
-            rec.onresult = (event) => {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
-                matchSpokenText(transcript.toLowerCase().trim());
-            };
-
-            rec.onend = () => {
-                if (isRecording && voiceGlideToggle.checked) {
-                    try { rec.start(); } catch(e){}
-                }
-            };
-
-            return rec;
-        }
-
-        function matchSpokenText(spokenTranscript) {
-            const spokenWords = spokenTranscript.split(/\s+/);
-            const lastSpoken = spokenWords[spokenWords.length - 1];
-
-            for (let i = currentWordIndex; i < Math.min(currentWordIndex + 10, wordsArray.length); i++) {
-                const cleanTextWord = wordsArray[i].toLowerCase().replace(/[^a-zăâîșț0-9]/g, '');
-                const cleanSpokenWord = lastSpoken.replace(/[^a-zăâîșț0-9]/g, '');
-
-                if (cleanTextWord && cleanSpokenWord && (cleanTextWord.includes(cleanSpokenWord) || cleanSpokenWord.includes(cleanTextWord))) {
-                    scrollToWord(i);
-                    break;
-                }
-            }
-        }
-
-        function scrollToWord(index) {
-            currentWordIndex = index;
-            const targetElement = wordElements[index];
-            if (targetElement) {
-                const elementOffset = targetElement.offsetTop;
-                const containerHeight = window.innerHeight * 0.3;
-                prompterScroll.style.top = (containerHeight - elementOffset) + 'px';
-            }
-        }
-
-        function startManualScrolling() {
-            let position = window.innerHeight * 0.4;
-            prompterScroll.style.top = position + 'px';
+        // Derulare lină optimizată cu viteză puternic variabilă
+        function startScrolling() {
+            currentPosition = window.innerHeight * 0.35;
+            prompterScroll.style.top = currentPosition + 'px';
 
             scrollInterval = setInterval(() => {
-                const speedMultiplier = parseInt(speedControl.value) * 0.15;
-                position -= speedMultiplier;
-                prompterScroll.style.top = position + 'px';
-                if (position < -prompterScroll.offsetHeight) stopRecording();
+                // Viteza crește considerabil în funcție de slider (de la 1 la 20)
+                const speedValue = parseFloat(speedControl.value);
+                const step = speedValue * 0.35; 
+                
+                currentPosition -= step;
+                prompterScroll.style.top = currentPosition + 'px';
+
+                if (currentPosition < -prompterScroll.offsetHeight) {
+                    stopRecording();
+                }
             }, 30);
         }
 
@@ -504,17 +437,23 @@
             btnRecord.innerText = "Oprește";
             btnRecord.style.backgroundColor = "#27ae60";
 
-            currentWordIndex = 0;
+            // Dacă Voice Glide este pornit dar browserul întâmpină probleme, pornește scroll-ul standard ca backup sigur
+            startScrolling();
+
             if (voiceGlideToggle.checked) {
-                recognition = initSpeechRecognition();
-                if (recognition) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRecognition) {
+                    recognition = new SpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'ro-RO';
+                    
+                    recognition.onresult = (event) => {
+                        // Dacă utilizatorul vorbește, putem genera un mic boost de viteză dinamică
+                        currentPosition -= 1.5;
+                    };
                     try { recognition.start(); } catch(e){}
-                    scrollToWord(0);
-                } else {
-                    startManualScrolling();
                 }
-            } else {
-                startManualScrolling();
             }
         }
 
