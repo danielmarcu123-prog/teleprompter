@@ -286,4 +286,232 @@
         <h3 style="margin-bottom: 15px; color: #fff;">Filmarea ta este gata</h3>
         <video id="recorded-video" controls playsinline></video>
         <div class="modal-buttons">
-            <a id="download-link" class="button btn-save" style="flex: 1; padding: 12px; border-radius:
+            <a id="download-link" class="button btn-save" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 600; font-size: 13px; color: #fff;" download="teleprompter.mp4">Descarcă Video</a>
+            <button class="btn-close" id="btn-close-modal">Închide</button>
+        </div>
+    </div>
+
+    <script>
+        const manifestData = {
+            "name": "Teleprompter Pro",
+            "short_name": "Teleprompter",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#000000"
+        };
+        const stringManifest = JSON.stringify(manifestData);
+        const blobManifest = new Blob([stringManifest], {type: 'application/json'});
+        document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(blobManifest));
+
+        const video = document.getElementById('preview');
+        const prompterScroll = document.getElementById('prompter-scroll');
+        const textInput = document.getElementById('text-input');
+        const speedControl = document.getElementById('speed-control');
+        const fontControl = document.getElementById('font-control');
+        const widthControl = document.getElementById('width-control');
+        const btnRecord = document.getElementById('btn-record');
+        const btnFlip = document.getElementById('btn-camera-flip');
+        const btnMirror = document.getElementById('btn-mirror');
+        const btnSaveScript = document.getElementById('btn-save-script');
+        const statsInfo = document.getElementById('stats-info');
+        
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        const countdownNumber = document.getElementById('countdown-number');
+        const videoModal = document.getElementById('video-modal');
+        const recordedVideo = document.getElementById('recorded-video');
+        const downloadLink = document.getElementById('download-link');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+
+        let stream, mediaRecorder, recordedChunks = [], isRecording = false, scrollInterval;
+        let currentFacingMode = 'user';
+        let selectedMimeType = '';
+        let currentPosition = 0;
+        let isMirrored = false;
+
+        if (localStorage.getItem('saved_teleprompter_text')) {
+            textInput.value = localStorage.getItem('saved_teleprompter_text');
+        }
+
+        async function initCamera() {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: currentFacingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Permite accesul la cameră și microfon.");
+            }
+        }
+
+        btnFlip.addEventListener('click', () => {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            video.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+            initCamera();
+        });
+
+        function updateTextStats() {
+            const text = textInput.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const speed = parseInt(speedControl.value);
+            const estimatedSeconds = Math.round(words / (2 + speed * 0.3));
+            statsInfo.innerText = `${words} cuv. (~${estimatedSeconds}s)`;
+            localStorage.setItem('saved_teleprompter_text', textInput.value);
+        }
+
+        function prepareText() {
+            const rawText = textInput.value.trim() || "Scrie sau lipește textul mai jos și apasă Start Înregistrare.";
+            prompterScroll.innerText = rawText;
+            updateTextStats();
+        }
+
+        textInput.addEventListener('input', prepareText);
+        prepareText();
+
+        fontControl.addEventListener('input', () => {
+            prompterScroll.style.fontSize = fontControl.value + 'px';
+        });
+        prompterScroll.style.fontSize = fontControl.value + 'px';
+
+        widthControl.addEventListener('input', () => {
+            prompterScroll.style.width = widthControl.value + '%';
+        });
+
+        btnMirror.addEventListener('click', () => {
+            isMirrored = !isMirrored;
+            if (isMirrored) {
+                prompterScroll.classList.add('mirrored');
+                btnMirror.innerText = "Oglindă: ON";
+                btnMirror.classList.add('active');
+            } else {
+                prompterScroll.classList.remove('mirrored');
+                btnMirror.innerText = "Oglindă: OFF";
+                btnMirror.classList.remove('active');
+            }
+        });
+
+        btnSaveScript.addEventListener('click', () => {
+            localStorage.setItem('saved_teleprompter_text', textInput.value);
+            btnSaveScript.innerText = "Salvat! ✓";
+            setTimeout(() => { btnSaveScript.innerText = "Salvează Script"; }, 2000);
+        });
+
+        function startScrolling() {
+            currentPosition = window.innerHeight * 0.35;
+            prompterScroll.style.top = currentPosition + 'px';
+
+            scrollInterval = setInterval(() => {
+                const speedValue = parseFloat(speedControl.value);
+                currentPosition -= speedValue * 0.35;
+                prompterScroll.style.top = currentPosition + 'px';
+
+                if (currentPosition < -prompterScroll.offsetHeight) {
+                    stopRecording();
+                }
+            }, 30);
+        }
+
+        function stopScrolling() { 
+            clearInterval(scrollInterval);
+        }
+
+        function getSupportedMimeType() {
+            const types = [
+                'video/mp4;codecs=h264,aac',
+                'video/mp4',
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm'
+            ];
+            for (let type of types) {
+                if (MediaRecorder.isTypeSupported(type)) return type;
+            }
+            return '';
+        }
+
+        function triggerRecordingSequence() {
+            if (isRecording) {
+                stopRecording();
+                return;
+            }
+
+            countdownOverlay.style.display = 'flex';
+            let count = 3;
+            countdownNumber.innerText = count;
+
+            const countdownTimer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownNumber.innerText = count;
+                } else {
+                    clearInterval(countdownTimer);
+                    countdownOverlay.style.display = 'none';
+                    startActualRecording();
+                }
+            }, 1000);
+        }
+
+        function startActualRecording() {
+            recordedChunks = [];
+            selectedMimeType = getSupportedMimeType();
+
+            try {
+                mediaRecorder = new MediaRecorder(stream, selectedMimeType ? { mimeType: selectedMimeType } : {});
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(stream);
+            }
+
+            mediaRecorder.ondataavailable = (e) => { 
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data); 
+            };
+            mediaRecorder.onstop = showVideoModal;
+
+            mediaRecorder.start(1000);
+            isRecording = true;
+            btnRecord.innerText = "Oprește";
+            btnRecord.style.backgroundColor = "#27ae60";
+
+            startScrolling();
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            mediaRecorder.stop();
+            isRecording = false;
+            btnRecord.innerText = "Start Înregistrare";
+            btnRecord.style.backgroundColor = "#e74c3c";
+            stopScrolling();
+        }
+
+        btnRecord.addEventListener('click', triggerRecordingSequence);
+
+        function showVideoModal() {
+            const type = selectedMimeType || 'video/mp4';
+            const blob = new Blob(recordedChunks, { type: type });
+            const videoUrl = URL.createObjectURL(blob);
+            
+            recordedVideo.src = videoUrl;
+            downloadLink.href = videoUrl;
+            downloadLink.download = `teleprompter_${Date.now()}.${type.includes('webm') ? 'webm' : 'mp4'}`;
+            
+            videoModal.style.display = 'flex';
+        }
+
+        btnCloseModal.addEventListener('click', () => {
+            videoModal.style.display = 'none';
+            recordedVideo.pause();
+        });
+
+        initCamera();
+    </script>
+</body>
+</html>
