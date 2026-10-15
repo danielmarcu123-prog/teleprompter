@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Teleprompter Pro</title>
+    <title>Teleprompter Voice Glide Pro</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -60,19 +60,24 @@
 
         #prompter-scroll {
             position: absolute;
-            top: 50%;
+            top: 40%;
             width: 88%;
             text-align: center;
             font-weight: 700;
             color: #ffffff;
             text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.95);
-            line-height: 1.4;
+            line-height: 1.5;
             word-wrap: break-word;
+            transition: top 0.2s ease-out; /* Tranziție lină pentru Voice Glide */
+        }
+
+        .highlight-word {
+            color: #f1c40f; /* Cuvântul curent/detectat se poate evidenția */
         }
 
         #reading-guide {
             position: absolute;
-            top: 25%;
+            top: 30%;
             left: 5%;
             width: 90%;
             height: 2px;
@@ -83,7 +88,7 @@
 
         #controls {
             position: absolute;
-            bottom: 25px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
@@ -95,7 +100,7 @@
             backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.1);
         }
@@ -111,7 +116,7 @@
 
         textarea {
             width: 100%;
-            height: 65px;
+            height: 60px;
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -126,6 +131,58 @@
         input[type="range"] {
             flex-grow: 1;
             accent-color: #3498db;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555;
+            transition: .3s;
+            border-radius: 22px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #27ae60;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
         }
 
         .btn-group {
@@ -209,8 +266,16 @@
     <div id="controls">
         <textarea id="text-input" placeholder="Lipește textul tău aici..."></textarea>
         
-        <div class="controls-row">
-            <label>Viteză:</label>
+        <div class="toggle-container">
+            <span>🎤 Voice Glide (Urmărire Voce)</span>
+            <label class="switch">
+                <input type="checkbox" id="voice-glide-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="controls-row" id="speed-row" style="display: none;">
+            <label>Viteză Fixă:</label>
             <input type="range" id="speed-control" min="1" max="10" value="3">
         </div>
 
@@ -248,140 +313,4 @@
         const blobManifest = new Blob([stringManifest], {type: 'application/json'});
         document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(blobManifest));
 
-        const video = document.getElementById('preview');
-        const prompterScroll = document.getElementById('prompter-scroll');
-        const textInput = document.getElementById('text-input');
-        const speedControl = document.getElementById('speed-control');
-        const fontControl = document.getElementById('font-control');
-        const btnRecord = document.getElementById('btn-record');
-        const btnFlip = document.getElementById('btn-camera-flip');
-        
-        const videoModal = document.getElementById('video-modal');
-        const recordedVideo = document.getElementById('recorded-video');
-        const downloadLink = document.getElementById('download-link');
-        const btnCloseModal = document.getElementById('btn-close-modal');
-
-        let stream, mediaRecorder, recordedChunks = [], isRecording = false, scrollInterval;
-        let currentFacingMode = 'user';
-        let selectedMimeType = '';
-
-        async function initCamera() {
-            if (stream) stream.getTracks().forEach(track => track.stop());
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: currentFacingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true
-                    }
-                });
-                video.srcObject = stream;
-            } catch (err) {
-                alert("Permite accesul la cameră și microfon.");
-            }
-        }
-
-        btnFlip.addEventListener('click', () => {
-            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-            video.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
-            initCamera();
-        });
-
-        textInput.addEventListener('input', () => {
-            prompterScroll.innerText = textInput.value || "Scrie sau lipește textul mai jos...";
-        });
-
-        fontControl.addEventListener('input', () => {
-            prompterScroll.style.fontSize = fontControl.value + 'px';
-        });
-        prompterScroll.style.fontSize = fontControl.value + 'px';
-
-        function startScrolling() {
-            let position = window.innerHeight * 0.45;
-            prompterScroll.style.top = position + 'px';
-
-            scrollInterval = setInterval(() => {
-                position -= parseInt(speedControl.value) * 0.45;
-                prompterScroll.style.top = position + 'px';
-                if (position < -prompterScroll.offsetHeight) stopRecording();
-            }, 30);
-        }
-
-        function stopScrolling() { clearInterval(scrollInterval); }
-
-        function getSupportedMimeType() {
-            const types = [
-                'video/mp4;codecs=h264,aac',
-                'video/mp4',
-                'video/webm;codecs=vp9,opus',
-                'video/webm;codecs=vp8,opus',
-                'video/webm'
-            ];
-            for (let type of types) {
-                if (MediaRecorder.isTypeSupported(type)) return type;
-            }
-            return '';
-        }
-
-        function startRecording() {
-            recordedChunks = [];
-            selectedMimeType = getSupportedMimeType();
-
-            try {
-                if (selectedMimeType) {
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType });
-                } else {
-                    mediaRecorder = new MediaRecorder(stream);
-                }
-            } catch (e) {
-                mediaRecorder = new MediaRecorder(stream);
-            }
-
-            mediaRecorder.ondataavailable = (e) => { 
-                if (e.data && e.data.size > 0) recordedChunks.push(e.data); 
-            };
-            mediaRecorder.onstop = showVideoModal;
-
-            mediaRecorder.start(1000); // Salvează câte o bucată la fiecare secundă
-            isRecording = true;
-            btnRecord.innerText = "Oprește";
-            btnRecord.style.backgroundColor = "#27ae60";
-            startScrolling();
-        }
-
-        function stopRecording() {
-            if (!isRecording) return;
-            mediaRecorder.stop();
-            isRecording = false;
-            btnRecord.innerText = "Start Înregistrare";
-            btnRecord.style.backgroundColor = "#e74c3c";
-            stopScrolling();
-        }
-
-        btnRecord.addEventListener('click', () => isRecording ? stopRecording() : startRecording());
-
-        function showVideoModal() {
-            const type = selectedMimeType || 'video/mp4';
-            const blob = new Blob(recordedChunks, { type: type });
-            const videoUrl = URL.createObjectURL(blob);
-            
-            recordedVideo.src = videoUrl;
-            downloadLink.href = videoUrl;
-            downloadLink.download = `teleprompter_${Date.now()}.${type.includes('webm') ? 'webm' : 'mp4'}`;
-            
-            videoModal.style.display = 'flex';
-        }
-
-        btnCloseModal.addEventListener('click', () => {
-            videoModal.style.display = 'none';
-            recordedVideo.pause();
-        });
-
-        initCamera();
-    </script>
-</body>
-</html>
+        const video =
