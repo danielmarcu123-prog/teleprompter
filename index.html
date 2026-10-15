@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Teleprompter Pro</title>
+    
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Teleprompter">
+    
+    <link rel="manifest" id="manifest-placeholder">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+        }
+
+        #camera-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        video#preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #prompter-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        #prompter-scroll {
+            position: absolute;
+            top: 50%;
+            width: 88%;
+            text-align: center;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.95);
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        #reading-guide {
+            position: absolute;
+            top: 25%;
+            left: 5%;
+            width: 90%;
+            height: 2px;
+            background-color: rgba(255, 50, 50, 0.6);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: 92%;
+            max-width: 420px;
+            background: rgba(18, 18, 18, 0.88);
+            padding: 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #ddd;
+        }
+
+        textarea {
+            width: 100%;
+            height: 75px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            resize: none;
+            font-size: 14px;
+            outline: none;
+            user-select: text;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: #3498db;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        #btn-record {
+            background-color: #e74c3c;
+            flex: 1.3;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="camera-container">
+        <video id="preview" autoplay playsinline muted></video>
+    </div>
+
+    <div id="prompter-overlay">
+        <div id="reading-guide"></div>
+        <div id="prompter-scroll">
+            Scrie sau lipește textul mai jos și apasă Start Înregistrare.
+        </div>
+    </div>
+
+    <div id="controls">
+        <textarea id="text-input" placeholder="Lipește textul tău aici..."></textarea>
+        
+        <div class="controls-row">
+            <label>Viteză:</label>
+            <input type="range" id="speed-control" min="1" max="10" value="3">
+        </div>
+
+        <div class="controls-row">
+            <label>Mărime text:</label>
+            <input type="range" id="font-control" min="20" max="55" value="32">
+        </div>
+
+        <div class="btn-group">
+            <button id="btn-camera-flip">Cameră</button>
+            <button id="btn-record">Start Înregistrare</button>
+        </div>
+    </div>
+
+    <script>
+        const manifestData = {
+            "name": "Teleprompter Video",
+            "short_name": "Teleprompter",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#000000"
+        };
+        const stringManifest = JSON.stringify(manifestData);
+        const blobManifest = new Blob([stringManifest], {type: 'application/json'});
+        document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(blobManifest));
+
+        const video = document.getElementById('preview');
+        const prompterScroll = document.getElementById('prompter-scroll');
+        const textInput = document.getElementById('text-input');
+        const speedControl = document.getElementById('speed-control');
+        const fontControl = document.getElementById('font-control');
+        const btnRecord = document.getElementById('btn-record');
+        const btnFlip = document.getElementById('btn-camera-flip');
+
+        let stream, mediaRecorder, recordedChunks = [], isRecording = false, scrollInterval;
+        let currentFacingMode = 'user';
+
+        async function initCamera() {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode },
+                    audio: true
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Permite accesul la cameră și microfon.");
+            }
+        }
+
+        btnFlip.addEventListener('click', () => {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            video.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+            initCamera();
+        });
+
+        textInput.addEventListener('input', () => {
+            prompterScroll.innerText = textInput.value || "Scrie sau lipește textul mai jos...";
+        });
+
+        fontControl.addEventListener('input', () => {
+            prompterScroll.style.fontSize = fontControl.value + 'px';
+        });
+        prompterScroll.style.fontSize = fontControl.value + 'px';
+
+        function startScrolling() {
+            let position = window.innerHeight * 0.45;
+            prompterScroll.style.top = position + 'px';
+
+            scrollInterval = setInterval(() => {
+                position -= parseInt(speedControl.value) * 0.45;
+                prompterScroll.style.top = position + 'px';
+                if (position < -prompterScroll.offsetHeight) stopRecording();
+            }, 30);
+        }
+
+        function stopScrolling() { clearInterval(scrollInterval); }
+
+        function startRecording() {
+            recordedChunks = [];
+            let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/mp4' };
+
+            try { mediaRecorder = new MediaRecorder(stream, options); } 
+            catch (e) { mediaRecorder = new MediaRecorder(stream); }
+
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.onstop = saveVideo;
+
+            mediaRecorder.start();
+            isRecording = true;
+            btnRecord.innerText = "Oprește";
+            btnRecord.style.backgroundColor = "#27ae60";
+            startScrolling();
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            mediaRecorder.stop();
+            isRecording = false;
+            btnRecord.innerText = "Start Înregistrare";
+            btnRecord.style.backgroundColor = "#e74c3c";
+            stopScrolling();
+        }
+
+        btnRecord.addEventListener('click', () => isRecording ? stopRecording() : startRecording());
+
+        function saveVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `teleprompter_${Date.now()}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+        }
+
+        initCamera();
+    </script>
+</body>
+</html>
