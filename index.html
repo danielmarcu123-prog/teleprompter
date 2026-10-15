@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Teleprompter Pro</title>
+    <title>Teleprompter Pro Studio</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,7 +52,7 @@
             width: 100%;
             height: 100%;
             z-index: 2;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.35);
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -61,7 +61,8 @@
         #prompter-scroll {
             position: absolute;
             top: 35%;
-            width: 88%;
+            width: 85%;
+            max-width: 600px;
             text-align: center;
             font-weight: 700;
             color: #ffffff;
@@ -69,34 +70,59 @@
             line-height: 1.5;
             word-wrap: break-word;
             will-change: top;
+            transition: transform 0.1s linear;
+        }
+
+        /* Mod oglindă */
+        .mirrored {
+            transform: scaleX(-1);
         }
 
         #reading-guide {
             position: absolute;
-            top: 28%;
-            left: 5%;
-            width: 90%;
-            height: 2px;
-            background-color: rgba(255, 50, 50, 0.8);
+            top: 30%;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background-color: rgba(241, 196, 15, 0.8);
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
             z-index: 3;
             pointer-events: none;
+            border-radius: 2px;
+        }
+
+        /* Countdown Overlay */
+        #countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            font-weight: bold;
+            color: #f1c40f;
         }
 
         #controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
             width: 92%;
             max-width: 420px;
-            background: rgba(18, 18, 18, 0.9);
-            padding: 16px;
+            background: rgba(18, 18, 18, 0.92);
+            padding: 14px;
             border-radius: 20px;
             backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.1);
         }
@@ -106,20 +132,20 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
-            font-size: 13px;
-            color: #ddd;
+            font-size: 12px;
+            color: #ccc;
         }
 
         textarea {
             width: 100%;
-            height: 60px;
+            height: 55px;
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             padding: 8px;
             resize: none;
-            font-size: 14px;
+            font-size: 13px;
             outline: none;
             user-select: text;
         }
@@ -129,56 +155,26 @@
             accent-color: #3498db;
         }
 
-        .toggle-container {
+        .tools-bar {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.05);
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .tool-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
             padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 13px;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 22px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 11px;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #555;
-            transition: .3s;
-            border-radius: 22px;
+            white-space: nowrap;
         }
 
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #27ae60;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(22px);
+        .tool-btn.active {
+            background-color: #2980b9;
         }
 
         .btn-group {
@@ -188,7 +184,7 @@
 
         button {
             flex: 1;
-            padding: 12px;
+            padding: 10px;
             border: none;
             border-radius: 10px;
             font-weight: 600;
@@ -251,6 +247,8 @@
         <video id="preview" autoplay playsinline muted></video>
     </div>
 
+    <div id="countdown-overlay"><span id="countdown-number">3</span></div>
+
     <div id="prompter-overlay">
         <div id="reading-guide"></div>
         <div id="prompter-scroll">
@@ -261,22 +259,21 @@
     <div id="controls">
         <textarea id="text-input" placeholder="Lipește textul tău aici..."></textarea>
         
-        <div class="toggle-container">
-            <span>🎤 Voice Glide (Detectare Audio)</span>
-            <label class="switch">
-                <input type="checkbox" id="voice-glide-toggle">
-                <span class="slider"></span>
-            </label>
+        <div class="tools-bar">
+            <button class="tool-btn" id="btn-mirror">Oglindă: OFF</button>
+            <button class="tool-btn" id="btn-save-script">Salvează Script</button>
+            <span id="stats-info" style="font-size: 11px; color: #aaa; align-self: center; margin-left: auto;">0 cuvinte (~0s)</span>
         </div>
 
         <div class="controls-row">
-            <label id="speed-label">Viteză Derulare:</label>
-            <input type="range" id="speed-control" min="1" max="20" value="6">
+            <label>Viteză:</label>
+            <input type="range" id="speed-control" min="1" max="20" value="5">
         </div>
 
         <div class="controls-row">
-            <label>Mărime text:</label>
-            <input type="range" id="font-control" min="20" max="55" value="32">
+            <label>Mărime & Lățime:</label>
+            <input type="range" id="font-control" min="20" max="55" value="32" style="width: 45%;">
+            <input type="range" id="width-control" min="50" max="95" value="85" style="width: 45%;">
         </div>
 
         <div class="btn-group">
@@ -289,203 +286,4 @@
         <h3 style="margin-bottom: 15px; color: #fff;">Filmarea ta este gata</h3>
         <video id="recorded-video" controls playsinline></video>
         <div class="modal-buttons">
-            <a id="download-link" class="button btn-save" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 600; font-size: 13px; color: #fff;" download="teleprompter.mp4">Descarcă Video</a>
-            <button class="btn-close" id="btn-close-modal">Închide</button>
-        </div>
-    </div>
-
-    <script>
-        const manifestData = {
-            "name": "Teleprompter Video",
-            "short_name": "Teleprompter",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#000000",
-            "theme_color": "#000000"
-        };
-        const stringManifest = JSON.stringify(manifestData);
-        const blobManifest = new Blob([stringManifest], {type: 'application/json'});
-        document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(blobManifest));
-
-        const video = document.getElementById('preview');
-        const prompterScroll = document.getElementById('prompter-scroll');
-        const textInput = document.getElementById('text-input');
-        const speedControl = document.getElementById('speed-control');
-        const speedLabel = document.getElementById('speed-label');
-        const fontControl = document.getElementById('font-control');
-        const voiceGlideToggle = document.getElementById('voice-glide-toggle');
-        const btnRecord = document.getElementById('btn-record');
-        const btnFlip = document.getElementById('btn-camera-flip');
-        
-        const videoModal = document.getElementById('video-modal');
-        const recordedVideo = document.getElementById('recorded-video');
-        const downloadLink = document.getElementById('download-link');
-        const btnCloseModal = document.getElementById('btn-close-modal');
-
-        let stream, mediaRecorder, recordedChunks = [], isRecording = false, scrollInterval;
-        let currentFacingMode = 'user';
-        let selectedMimeType = '';
-        let recognition = null;
-        let wordsArray = [];
-        let currentPosition = 0;
-
-        if (localStorage.getItem('saved_teleprompter_text')) {
-            textInput.value = localStorage.getItem('saved_teleprompter_text');
-        }
-
-        async function initCamera() {
-            if (stream) stream.getTracks().forEach(track => track.stop());
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: currentFacingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true
-                    }
-                });
-                video.srcObject = stream;
-            } catch (err) {
-                alert("Permite accesul la cameră și microfon.");
-            }
-        }
-
-        btnFlip.addEventListener('click', () => {
-            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-            video.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
-            initCamera();
-        });
-
-        function prepareText() {
-            const rawText = textInput.value.trim() || "Scrie sau lipește textul mai jos și apasă Start Înregistrare.";
-            localStorage.setItem('saved_teleprompter_text', textInput.value);
-            prompterScroll.innerText = rawText;
-        }
-
-        textInput.addEventListener('input', prepareText);
-        prepareText();
-
-        fontControl.addEventListener('input', () => {
-            prompterScroll.style.fontSize = fontControl.value + 'px';
-        });
-        prompterScroll.style.fontSize = fontControl.value + 'px';
-
-        // Derulare lină optimizată cu viteză puternic variabilă
-        function startScrolling() {
-            currentPosition = window.innerHeight * 0.35;
-            prompterScroll.style.top = currentPosition + 'px';
-
-            scrollInterval = setInterval(() => {
-                // Viteza crește considerabil în funcție de slider (de la 1 la 20)
-                const speedValue = parseFloat(speedControl.value);
-                const step = speedValue * 0.35; 
-                
-                currentPosition -= step;
-                prompterScroll.style.top = currentPosition + 'px';
-
-                if (currentPosition < -prompterScroll.offsetHeight) {
-                    stopRecording();
-                }
-            }, 30);
-        }
-
-        function stopScrolling() { 
-            clearInterval(scrollInterval);
-            if (recognition) {
-                try { recognition.stop(); } catch(e){}
-            }
-        }
-
-        function getSupportedMimeType() {
-            const types = [
-                'video/mp4;codecs=h264,aac',
-                'video/mp4',
-                'video/webm;codecs=vp9,opus',
-                'video/webm;codecs=vp8,opus',
-                'video/webm'
-            ];
-            for (let type of types) {
-                if (MediaRecorder.isTypeSupported(type)) return type;
-            }
-            return '';
-        }
-
-        function startRecording() {
-            recordedChunks = [];
-            selectedMimeType = getSupportedMimeType();
-
-            try {
-                if (selectedMimeType) {
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType });
-                } else {
-                    mediaRecorder = new MediaRecorder(stream);
-                }
-            } catch (e) {
-                mediaRecorder = new MediaRecorder(stream);
-            }
-
-            mediaRecorder.ondataavailable = (e) => { 
-                if (e.data && e.data.size > 0) recordedChunks.push(e.data); 
-            };
-            mediaRecorder.onstop = showVideoModal;
-
-            mediaRecorder.start(1000);
-            isRecording = true;
-            btnRecord.innerText = "Oprește";
-            btnRecord.style.backgroundColor = "#27ae60";
-
-            // Dacă Voice Glide este pornit dar browserul întâmpină probleme, pornește scroll-ul standard ca backup sigur
-            startScrolling();
-
-            if (voiceGlideToggle.checked) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (SpeechRecognition) {
-                    recognition = new SpeechRecognition();
-                    recognition.continuous = true;
-                    recognition.interimResults = true;
-                    recognition.lang = 'ro-RO';
-                    
-                    recognition.onresult = (event) => {
-                        // Dacă utilizatorul vorbește, putem genera un mic boost de viteză dinamică
-                        currentPosition -= 1.5;
-                    };
-                    try { recognition.start(); } catch(e){}
-                }
-            }
-        }
-
-        function stopRecording() {
-            if (!isRecording) return;
-            mediaRecorder.stop();
-            isRecording = false;
-            btnRecord.innerText = "Start Înregistrare";
-            btnRecord.style.backgroundColor = "#e74c3c";
-            stopScrolling();
-        }
-
-        btnRecord.addEventListener('click', () => isRecording ? stopRecording() : startRecording());
-
-        function showVideoModal() {
-            const type = selectedMimeType || 'video/mp4';
-            const blob = new Blob(recordedChunks, { type: type });
-            const videoUrl = URL.createObjectURL(blob);
-            
-            recordedVideo.src = videoUrl;
-            downloadLink.href = videoUrl;
-            downloadLink.download = `teleprompter_${Date.now()}.${type.includes('webm') ? 'webm' : 'mp4'}`;
-            
-            videoModal.style.display = 'flex';
-        }
-
-        btnCloseModal.addEventListener('click', () => {
-            videoModal.style.display = 'none';
-            recordedVideo.pause();
-        });
-
-        initCamera();
-    </script>
-</body>
-</html>
+            <a id="download-link" class="button btn-save" style="flex: 1; padding: 12px; border-radius:
