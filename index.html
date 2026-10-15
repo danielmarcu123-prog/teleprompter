@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Teleprompter Pro Studio</title>
+    <title>Teleprompter Studio Pro</title>
     
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,6 +19,7 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body, html {
@@ -52,7 +53,7 @@
             width: 100%;
             height: 100%;
             z-index: 2;
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0, 0, 0, 0.4);
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -66,14 +67,13 @@
             text-align: center;
             font-weight: 700;
             color: #ffffff;
-            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.95);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
             line-height: 1.5;
             word-wrap: break-word;
             will-change: top;
             transition: transform 0.1s linear;
         }
 
-        /* Mod oglindă */
         .mirrored {
             transform: scaleX(-1);
         }
@@ -83,12 +83,11 @@
             top: 30%;
             left: 10%;
             width: 80%;
-            height: 3px;
-            background-color: rgba(241, 196, 15, 0.8);
-            box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+            height: 2px;
+            background-color: #3498db;
+            box-shadow: 0 0 8px #3498db;
             z-index: 3;
             pointer-events: none;
-            border-radius: 2px;
         }
 
         /* Countdown Overlay */
@@ -98,107 +97,240 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 200;
+            background: rgba(0,0,0,0.85);
+            z-index: 300;
             display: none;
             align-items: center;
             justify-content: center;
-            font-size: 100px;
-            font-weight: bold;
-            color: #f1c40f;
+            font-size: 110px;
+            font-weight: 700;
+            color: #3498db;
         }
 
+        /* Panou Principal Control */
         #controls {
             position: absolute;
-            bottom: 15px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
             width: 92%;
             max-width: 420px;
-            background: rgba(18, 18, 18, 0.92);
+            background: rgba(22, 22, 22, 0.88);
             padding: 14px;
-            border-radius: 20px;
-            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .controls-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             gap: 10px;
-            font-size: 12px;
-            color: #ccc;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
         textarea {
             width: 100%;
-            height: 55px;
-            background: rgba(255, 255, 255, 0.08);
+            height: 50px;
+            background: rgba(255, 255, 255, 0.06);
             color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 8px 12px;
             resize: none;
             font-size: 13px;
             outline: none;
             user-select: text;
         }
 
-        input[type="range"] {
-            flex-grow: 1;
-            accent-color: #3498db;
+        textarea::placeholder {
+            color: #888;
         }
 
-        .tools-bar {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 2px;
-        }
-
-        .tool-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 11px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .tool-btn.active {
-            background-color: #2980b9;
-        }
-
-        .btn-group {
+        .action-bar {
             display: flex;
             gap: 8px;
+            align-items: center;
         }
 
-        button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: #fff;
-            background-color: rgba(255, 255, 255, 0.15);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         #btn-record {
             background-color: #e74c3c;
-            flex: 1.3;
+            flex-grow: 1;
+            border: none;
+            color: #fff;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
         }
 
+        /* Panou Setări / Modal Opțiuni Avansate */
+        #settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+        }
+
+        .settings-content {
+            width: 100%;
+            background: #18181b;
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            padding: 24px 20px 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .setting-section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #3498db;
+            margin-top: 6px;
+            font-weight: 700;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.04);
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+        }
+
+        .setting-sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-row span {
+            min-width: 110px;
+            color: #aaa;
+        }
+
+        select {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 6px 10px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 32px;
+            height: 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: #3498db;
+            height: 4px;
+        }
+
+        /* Switch iOS style */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider-switch {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #3f3f46;
+            transition: .3s;
+            border-radius: 26px;
+        }
+
+        .slider-switch:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-switch { background-color: #3498db; }
+        input:checked + .slider-switch:before { transform: translateX(22px); }
+
+        .btn-close-settings {
+            background: #27272a;
+            border: none;
+            color: #fff;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Modal Video Previzualizare */
         #video-modal {
             position: fixed;
             top: 0;
@@ -206,7 +338,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.95);
-            z-index: 100;
+            z-index: 250;
             display: none;
             flex-direction: column;
             align-items: center;
@@ -216,8 +348,8 @@
 
         #recorded-video {
             width: 100%;
-            max-height: 70vh;
-            border-radius: 12px;
+            max-height: 65vh;
+            border-radius: 16px;
             background: #000;
             margin-bottom: 20px;
         }
@@ -233,11 +365,9 @@
             background-color: #27ae60 !important;
             text-decoration: none;
             text-align: center;
-            display: inline-block;
-        }
-
-        .btn-close {
-            background-color: #c0392b !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -252,48 +382,128 @@
     <div id="prompter-overlay">
         <div id="reading-guide"></div>
         <div id="prompter-scroll">
-            Scrie sau lipește textul mai jos și apasă Start Înregistrare.
+            Scrie sau lipește textul tău aici și apasă Start Înregistrare.
         </div>
     </div>
 
+    <!-- Meniu Principal Minimalist -->
     <div id="controls">
         <textarea id="text-input" placeholder="Lipește textul tău aici..."></textarea>
         
-        <div class="tools-bar">
-            <button class="tool-btn" id="btn-mirror">Oglindă: OFF</button>
-            <button class="tool-btn" id="btn-save-script">Salvează Script</button>
-            <span id="stats-info" style="font-size: 11px; color: #aaa; align-self: center; margin-left: auto;">0 cuvinte (~0s)</span>
-        </div>
-
-        <div class="controls-row">
-            <label>Viteză:</label>
-            <input type="range" id="speed-control" min="1" max="20" value="5">
-        </div>
-
-        <div class="controls-row">
-            <label>Mărime & Lățime:</label>
-            <input type="range" id="font-control" min="20" max="55" value="32" style="width: 45%;">
-            <input type="range" id="width-control" min="50" max="95" value="85" style="width: 45%;">
-        </div>
-
-        <div class="btn-group">
-            <button id="btn-camera-flip">Cameră</button>
+        <div class="action-bar">
+            <button class="btn-icon" id="btn-flip-ui" title="Cameră">🔄</button>
+            <button class="btn-icon" id="btn-settings-open" title="Setări">⚙️ Setări</button>
             <button id="btn-record">Start Înregistrare</button>
         </div>
     </div>
 
+    <!-- Panou Setări / Opțiuni Tip Document (Word-like) -->
+    <div id="settings-modal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <span>Setări Studio & Tipografie</span>
+                <span id="stats-badge" style="font-size: 12px; color: #3498db; font-weight: normal;">0 cuvinte</span>
+            </div>
+
+            <!-- OPȚIUNI TEXT / STIL WORD -->
+            <div class="setting-section-title">Formatare Text (Word style)</div>
+            
+            <div class="setting-item">
+                <span>Familie de Font</span>
+                <select id="font-family-select">
+                    <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Modern (Sans)</option>
+                    <option value="Georgia, serif">Clasic (Serif)</option>
+                    <option value="'Courier New', monospace">Cod (Monospace)</option>
+                    <option value="'Comic Sans MS', cursive, sans-serif">Rotund (Casual)</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
+                <span>Culoare Text</span>
+                <input type="color" id="text-color-picker" value="#ffffff">
+            </div>
+
+            <div class="setting-sliders">
+                <div class="slider-row">
+                    <span>Grosime (Bold):</span>
+                    <input type="range" id="font-weight-control" min="300" max="900" step="100" value="700">
+                </div>
+                <div class="slider-row">
+                    <span>Spațiu Rânduri:</span>
+                    <input type="range" id="line-height-control" min="1.1" max="2.5" step="0.1" value="1.5">
+                </div>
+                <div class="slider-row">
+                    <span>Spațiu Litere:</span>
+                    <input type="range" id="letter-spacing-control" min="-1" max="5" step="0.5" value="0">
+                </div>
+            </div>
+
+            <!-- OPȚIUNI PROMPTER -->
+            <div class="setting-section-title">Opțiuni Prompter & Cameră</div>
+
+            <div class="setting-item">
+                <span>Mod Oglindă (Mirror)</span>
+                <label class="switch">
+                    <input type="checkbox" id="opt-mirror">
+                    <span class="slider-switch"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <span>Numărătoare Inversă</span>
+                <label class="switch">
+                    <input type="checkbox" id="opt-countdown" checked>
+                    <span class="slider-switch"></span>
+                </label>
+            </div>
+
+            <div class="setting-sliders" id="countdown-slider-box">
+                <div class="slider-row">
+                    <span>Timp Invers: <b id="countdown-val">3s</b></span>
+                    <input type="range" id="countdown-control" min="1" max="10" value="3">
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <span>Ghidaj Vizual Central</span>
+                <label class="switch">
+                    <input type="checkbox" id="opt-guide" checked>
+                    <span class="slider-switch"></span>
+                </label>
+            </div>
+
+            <div class="setting-sliders">
+                <div class="slider-row">
+                    <span>Viteză Derulare:</span>
+                    <input type="range" id="speed-control" min="1" max="20" value="6">
+                </div>
+                <div class="slider-row">
+                    <span>Mărime Text:</span>
+                    <input type="range" id="font-size-control" min="20" max="55" value="32">
+                </div>
+                <div class="slider-row">
+                    <span>Lățime Coloană:</span>
+                    <input type="range" id="width-control" min="50" max="95" value="85">
+                </div>
+            </div>
+
+            <button class="btn-close-settings" id="btn-settings-close">Gata</button>
+        </div>
+    </div>
+
+    <!-- Modal Previzualizare Video -->
     <div id="video-modal">
-        <h3 style="margin-bottom: 15px; color: #fff;">Filmarea ta este gata</h3>
+        <h3 style="margin-bottom: 15px; color: #fff; font-size: 16px;">Filmarea ta este gata</h3>
         <video id="recorded-video" controls playsinline></video>
         <div class="modal-buttons">
-            <a id="download-link" class="button btn-save" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 600; font-size: 13px; color: #fff;" download="teleprompter.mp4">Descarcă Video</a>
-            <button class="btn-close" id="btn-close-modal">Închide</button>
+            <a id="download-link" class="button btn-save" style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13px; color: #fff;" download="teleprompter.mp4">Descarcă Video</a>
+            <button class="btn-close-settings" id="btn-close-modal" style="flex: 1; margin-top: 0;">Închide</button>
         </div>
     </div>
 
     <script>
         const manifestData = {
-            "name": "Teleprompter Pro",
+            "name": "Teleprompter Studio Pro",
             "short_name": "Teleprompter",
             "start_url": ".",
             "display": "standalone",
@@ -308,14 +518,35 @@
         const prompterScroll = document.getElementById('prompter-scroll');
         const textInput = document.getElementById('text-input');
         const speedControl = document.getElementById('speed-control');
-        const fontControl = document.getElementById('font-control');
+        const fontSizeControl = document.getElementById('font-size-control');
         const widthControl = document.getElementById('width-control');
         const btnRecord = document.getElementById('btn-record');
-        const btnFlip = document.getElementById('btn-camera-flip');
-        const btnMirror = document.getElementById('btn-mirror');
-        const btnSaveScript = document.getElementById('btn-save-script');
-        const statsInfo = document.getElementById('stats-info');
+        const btnFlip = document.getElementById('btn-flip-ui');
+        const statsBadge = document.getElementById('stats-badge');
         
+        // Word-like Controls
+        const fontFamilySelect = document.getElementById('font-family-select');
+        const textColorPicker = document.getElementById('text-color-picker');
+        const fontWeightControl = document.getElementById('font-weight-control');
+        const lineHeightControl = document.getElementById('line-height-control');
+        const letterSpacingControl = document.getElementById('letter-spacing-control');
+        
+        // Settings Modal
+        const btnSettingsOpen = document.getElementById('btn-settings-open');
+        const btnSettingsClose = document.getElementById('btn-settings-close');
+        const settingsModal = document.getElementById('settings-modal');
+        
+        // Toggles
+        const optMirror = document.getElementById('opt-mirror');
+        const optCountdown = document.getElementById('opt-countdown');
+        const optGuide = document.getElementById('opt-guide');
+        const readingGuide = document.getElementById('reading-guide');
+
+        // Countdown controls
+        const countdownControl = document.getElementById('countdown-control');
+        const countdownVal = document.getElementById('countdown-val');
+        const countdownSliderBox = document.getElementById('countdown-slider-box');
+
         const countdownOverlay = document.getElementById('countdown-overlay');
         const countdownNumber = document.getElementById('countdown-number');
         const videoModal = document.getElementById('video-modal');
@@ -327,7 +558,6 @@
         let currentFacingMode = 'user';
         let selectedMimeType = '';
         let currentPosition = 0;
-        let isMirrored = false;
 
         if (localStorage.getItem('saved_teleprompter_text')) {
             textInput.value = localStorage.getItem('saved_teleprompter_text');
@@ -342,10 +572,7 @@
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     },
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true
-                    }
+                    audio: { echoCancellation: true, noiseSuppression: true }
                 });
                 video.srcObject = stream;
             } catch (err) {
@@ -359,17 +586,61 @@
             initCamera();
         });
 
+        btnSettingsOpen.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
+        btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+
+        // Evenimente pentru stilizarea tipografică (Word-like)
+        fontFamilySelect.addEventListener('change', () => {
+            prompterScroll.style.fontFamily = fontFamilySelect.value;
+        });
+
+        textColorPicker.addEventListener('input', () => {
+            prompterScroll.style.color = textColorPicker.value;
+        });
+
+        fontWeightControl.addEventListener('input', () => {
+            prompterScroll.style.fontWeight = fontWeightControl.value;
+        });
+
+        lineHeightControl.addEventListener('input', () => {
+            prompterScroll.style.lineHeight = lineHeightControl.value;
+        });
+
+        letterSpacingControl.addEventListener('input', () => {
+            prompterScroll.style.letterSpacing = letterSpacingControl.value + 'px';
+        });
+
+        optMirror.addEventListener('change', () => {
+            if (optMirror.checked) {
+                prompterScroll.classList.add('mirrored');
+            } else {
+                prompterScroll.classList.remove('mirrored');
+            }
+        });
+
+        optGuide.addEventListener('change', () => {
+            readingGuide.style.display = optGuide.checked ? 'block' : 'none';
+        });
+
+        optCountdown.addEventListener('change', () => {
+            countdownSliderBox.style.display = optCountdown.checked ? 'flex' : 'none';
+        });
+
+        countdownControl.addEventListener('input', () => {
+            countdownVal.innerText = countdownControl.value + 's';
+        });
+
         function updateTextStats() {
             const text = textInput.value.trim();
             const words = text ? text.split(/\s+/).length : 0;
             const speed = parseInt(speedControl.value);
             const estimatedSeconds = Math.round(words / (2 + speed * 0.3));
-            statsInfo.innerText = `${words} cuv. (~${estimatedSeconds}s)`;
+            statsBadge.innerText = `${words} cuvinte (~${estimatedSeconds}s)`;
             localStorage.setItem('saved_teleprompter_text', textInput.value);
         }
 
         function prepareText() {
-            const rawText = textInput.value.trim() || "Scrie sau lipește textul mai jos și apasă Start Înregistrare.";
+            const rawText = textInput.value.trim() || "Scrie sau lipește textul tău aici și apasă Start Înregistrare.";
             prompterScroll.innerText = rawText;
             updateTextStats();
         }
@@ -377,32 +648,13 @@
         textInput.addEventListener('input', prepareText);
         prepareText();
 
-        fontControl.addEventListener('input', () => {
-            prompterScroll.style.fontSize = fontControl.value + 'px';
+        fontSizeControl.addEventListener('input', () => {
+            prompterScroll.style.fontSize = fontSizeControl.value + 'px';
         });
-        prompterScroll.style.fontSize = fontControl.value + 'px';
+        prompterScroll.style.fontSize = fontSizeControl.value + 'px';
 
         widthControl.addEventListener('input', () => {
             prompterScroll.style.width = widthControl.value + '%';
-        });
-
-        btnMirror.addEventListener('click', () => {
-            isMirrored = !isMirrored;
-            if (isMirrored) {
-                prompterScroll.classList.add('mirrored');
-                btnMirror.innerText = "Oglindă: ON";
-                btnMirror.classList.add('active');
-            } else {
-                prompterScroll.classList.remove('mirrored');
-                btnMirror.innerText = "Oglindă: OFF";
-                btnMirror.classList.remove('active');
-            }
-        });
-
-        btnSaveScript.addEventListener('click', () => {
-            localStorage.setItem('saved_teleprompter_text', textInput.value);
-            btnSaveScript.innerText = "Salvat! ✓";
-            setTimeout(() => { btnSaveScript.innerText = "Salvează Script"; }, 2000);
         });
 
         function startScrolling() {
@@ -444,20 +696,24 @@
                 return;
             }
 
-            countdownOverlay.style.display = 'flex';
-            let count = 3;
-            countdownNumber.innerText = count;
+            if (optCountdown.checked) {
+                countdownOverlay.style.display = 'flex';
+                let count = parseInt(countdownControl.value);
+                countdownNumber.innerText = count;
 
-            const countdownTimer = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    countdownNumber.innerText = count;
-                } else {
-                    clearInterval(countdownTimer);
-                    countdownOverlay.style.display = 'none';
-                    startActualRecording();
-                }
-            }, 1000);
+                const countdownTimer = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownNumber.innerText = count;
+                    } else {
+                        clearInterval(countdownTimer);
+                        countdownOverlay.style.display = 'none';
+                        startActualRecording();
+                    }
+                }, 1000);
+            } else {
+                startActualRecording();
+            }
         }
 
         function startActualRecording() {
@@ -477,7 +733,7 @@
 
             mediaRecorder.start(1000);
             isRecording = true;
-            btnRecord.innerText = "Oprește";
+            btnRecord.innerText = "Oprește Înregistrarea";
             btnRecord.style.backgroundColor = "#27ae60";
 
             startScrolling();
