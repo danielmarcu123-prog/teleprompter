@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Teleprompter">
     
-    <link rel="manifest" id="manifest-placeholder">
+    <link rel="manifest" href="./manifest.json">
 
     <style>
         * {
@@ -37,6 +37,7 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+            background: #111;
         }
 
         video#preview {
@@ -90,7 +91,6 @@
             pointer-events: none;
         }
 
-        /* Countdown Overlay */
         #countdown-overlay {
             position: fixed;
             top: 0;
@@ -107,7 +107,6 @@
             color: #3498db;
         }
 
-        /* Panou Principal Control */
         #controls {
             position: absolute;
             bottom: 20px;
@@ -179,7 +178,6 @@
             box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
         }
 
-        /* Panou Setări / Modal Opțiuni Avansate */
         #settings-modal {
             position: fixed;
             top: 0;
@@ -284,7 +282,6 @@
             height: 4px;
         }
 
-        /* Switch iOS style */
         .switch {
             position: relative;
             display: inline-block;
@@ -330,7 +327,6 @@
             margin-top: 10px;
         }
 
-        /* Modal Video Previzualizare */
         #video-modal {
             position: fixed;
             top: 0;
@@ -386,7 +382,6 @@
         </div>
     </div>
 
-    <!-- Meniu Principal Minimalist -->
     <div id="controls">
         <textarea id="text-input" placeholder="Lipește textul tău aici..."></textarea>
         
@@ -397,7 +392,6 @@
         </div>
     </div>
 
-    <!-- Panou Setări / Opțiuni Tip Document (Word-like) -->
     <div id="settings-modal">
         <div class="settings-content">
             <div class="settings-header">
@@ -405,8 +399,7 @@
                 <span id="stats-badge" style="font-size: 12px; color: #3498db; font-weight: normal;">0 cuvinte</span>
             </div>
 
-            <!-- OPȚIUNI TEXT / STIL WORD -->
-            <div class="setting-section-title">Formatare Text (Word style)</div>
+            <div class="setting-section-title">Formatare Text</div>
             
             <div class="setting-item">
                 <span>Familie de Font</span>
@@ -438,7 +431,6 @@
                 </div>
             </div>
 
-            <!-- OPȚIUNI PROMPTER -->
             <div class="setting-section-title">Opțiuni Prompter & Cameră</div>
 
             <div class="setting-item">
@@ -491,7 +483,6 @@
         </div>
     </div>
 
-    <!-- Modal Previzualizare Video -->
     <div id="video-modal">
         <h3 style="margin-bottom: 15px; color: #fff; font-size: 16px;">Filmarea ta este gata</h3>
         <video id="recorded-video" controls playsinline></video>
@@ -502,17 +493,12 @@
     </div>
 
     <script>
-        const manifestData = {
-            "name": "Teleprompter Studio Pro",
-            "short_name": "Teleprompter",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#000000",
-            "theme_color": "#000000"
-        };
-        const stringManifest = JSON.stringify(manifestData);
-        const blobManifest = new Blob([stringManifest], {type: 'application/json'});
-        document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(blobManifest));
+        // Înregistrare Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+            });
+        }
 
         const video = document.getElementById('preview');
         const prompterScroll = document.getElementById('prompter-scroll');
@@ -524,25 +510,21 @@
         const btnFlip = document.getElementById('btn-flip-ui');
         const statsBadge = document.getElementById('stats-badge');
         
-        // Word-like Controls
         const fontFamilySelect = document.getElementById('font-family-select');
         const textColorPicker = document.getElementById('text-color-picker');
         const fontWeightControl = document.getElementById('font-weight-control');
         const lineHeightControl = document.getElementById('line-height-control');
         const letterSpacingControl = document.getElementById('letter-spacing-control');
         
-        // Settings Modal
         const btnSettingsOpen = document.getElementById('btn-settings-open');
         const btnSettingsClose = document.getElementById('btn-settings-close');
         const settingsModal = document.getElementById('settings-modal');
         
-        // Toggles
         const optMirror = document.getElementById('opt-mirror');
         const optCountdown = document.getElementById('opt-countdown');
         const optGuide = document.getElementById('opt-guide');
         const readingGuide = document.getElementById('reading-guide');
 
-        // Countdown controls
         const countdownControl = document.getElementById('countdown-control');
         const countdownVal = document.getElementById('countdown-val');
         const countdownSliderBox = document.getElementById('countdown-slider-box');
@@ -554,7 +536,7 @@
         const downloadLink = document.getElementById('download-link');
         const btnCloseModal = document.getElementById('btn-close-modal');
 
-        let stream, mediaRecorder, recordedChunks = [], isRecording = false, scrollInterval;
+        let stream = null, mediaRecorder = null, recordedChunks = [], isRecording = false, scrollInterval;
         let currentFacingMode = 'user';
         let selectedMimeType = '';
         let currentPosition = 0;
@@ -564,19 +546,22 @@
         }
 
         async function initCamera() {
-            if (stream) stream.getTracks().forEach(track => track.stop());
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { 
                         facingMode: currentFacingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     },
                     audio: { echoCancellation: true, noiseSuppression: true }
                 });
                 video.srcObject = stream;
+                await video.play().catch(() => {});
             } catch (err) {
-                alert("Permite accesul la cameră și microfon.");
+                console.error("Erore cameră:", err);
             }
         }
 
@@ -589,33 +574,14 @@
         btnSettingsOpen.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
         btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
 
-        // Evenimente pentru stilizarea tipografică (Word-like)
-        fontFamilySelect.addEventListener('change', () => {
-            prompterScroll.style.fontFamily = fontFamilySelect.value;
-        });
-
-        textColorPicker.addEventListener('input', () => {
-            prompterScroll.style.color = textColorPicker.value;
-        });
-
-        fontWeightControl.addEventListener('input', () => {
-            prompterScroll.style.fontWeight = fontWeightControl.value;
-        });
-
-        lineHeightControl.addEventListener('input', () => {
-            prompterScroll.style.lineHeight = lineHeightControl.value;
-        });
-
-        letterSpacingControl.addEventListener('input', () => {
-            prompterScroll.style.letterSpacing = letterSpacingControl.value + 'px';
-        });
+        fontFamilySelect.addEventListener('change', () => { prompterScroll.style.fontFamily = fontFamilySelect.value; });
+        textColorPicker.addEventListener('input', () => { prompterScroll.style.color = textColorPicker.value; });
+        fontWeightControl.addEventListener('input', () => { prompterScroll.style.fontWeight = fontWeightControl.value; });
+        lineHeightControl.addEventListener('input', () => { prompterScroll.style.lineHeight = lineHeightControl.value; });
+        letterSpacingControl.addEventListener('input', () => { prompterScroll.style.letterSpacing = letterSpacingControl.value + 'px'; });
 
         optMirror.addEventListener('change', () => {
-            if (optMirror.checked) {
-                prompterScroll.classList.add('mirrored');
-            } else {
-                prompterScroll.classList.remove('mirrored');
-            }
+            prompterScroll.classList.toggle('mirrored', optMirror.checked);
         });
 
         optGuide.addEventListener('change', () => {
@@ -677,13 +643,7 @@
         }
 
         function getSupportedMimeType() {
-            const types = [
-                'video/mp4;codecs=h264,aac',
-                'video/mp4',
-                'video/webm;codecs=vp9,opus',
-                'video/webm;codecs=vp8,opus',
-                'video/webm'
-            ];
+            const types = ['video/mp4;codecs=h264,aac', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
             for (let type of types) {
                 if (MediaRecorder.isTypeSupported(type)) return type;
             }
@@ -696,6 +656,14 @@
                 return;
             }
 
+            if (!stream || !stream.active) {
+                initCamera().then(() => startRecordingProcess());
+            } else {
+                startRecordingProcess();
+            }
+        }
+
+        function startRecordingProcess() {
             if (optCountdown.checked) {
                 countdownOverlay.style.display = 'flex';
                 let count = parseInt(countdownControl.value);
@@ -767,7 +735,9 @@
             recordedVideo.pause();
         });
 
-        initCamera();
+        window.addEventListener('load', () => {
+            initCamera();
+        });
     </script>
 </body>
 </html>
